@@ -6,10 +6,11 @@ class KobGameMenu {
     <div class="kob-game-menu-field">
         <div class="kob-game-menu-field-item kob-game-menu-field-item-single-mode">单人模式</div>
         <div class="kob-game-menu-field-item kob-game-menu-field-item-multi-mode">多人模式</div>
-        <div class="kob-game-menu-field-item kob-game-menu-field-item-settings">设置</div>
+        <div class="kob-game-menu-field-item kob-game-menu-field-item-settings">退出</div>
     </div>
 </div>
 `);
+        this.$menu.hide();
         this.root.$kob_game.append(this.$menu);
         this.$single_mode = this.$menu.find('.kob-game-menu-field-item-single-mode');
         this.$multi_mode = this.$menu.find('.kob-game-menu-field-item-multi-mode');
@@ -33,6 +34,7 @@ class KobGameMenu {
         });
         this.$settings.click(function () {
             console.log('settings');
+            outer.root.settings.logout_on_remote();
         });
     }
 

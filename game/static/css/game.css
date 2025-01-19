@@ -1,3 +1,12 @@
+/* latin */
+@font-face {
+    font-family: 'Satisfy';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Satisfy Regular'), local('Satisfy-Regular'), url(https://cdn.acwing.com/static/web/fonts/rP2Hp2yn6lkG50LoCZOIHQ.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 .kob-game-menu {
     width: 100%;
     height: 100%;
@@ -39,3 +48,158 @@
     height: 100%;
     user-select: none;
 }
+
+.kob-game-settings {
+    width: 100%;
+    height: 100%;
+    background-image: url("/static/image/menu/background.gif");
+    background-size: 100% 100%;
+    user-select: none;
+    border-radius: 15px;
+}
+
+.kob-game-settings-title {
+    color: black;
+    font-size: 3vh;
+    text-align: center;
+    height: 7vh;
+    padding-top: 2vh;
+    margin-bottom: 2vh;
+    display: grid;
+    place-items: center;
+}
+
+.kob-brand {
+    font-family: 'Satisfy', cursive;
+    font-size: 40px;
+    color: cornflowerblue;
+    align-items: center;
+    justify-content: center;
+}
+
+.kob-game-settings-username {
+    display: block;
+    height: 7vh;
+}
+
+.kob-game-settings-password {
+    display: block;
+    height: 7vh;
+}
+
+.kob-game-settings-password-confirm {
+    display: block;
+    height: 7vh;
+}
+
+.kob-game-settings-item {
+    width: 100%;
+    height: 100%;
+}
+
+.kob-game-settings-item > input {
+    width: 90%;
+    line-height: 3vh;
+    position: relative;
+    font-size: 14px;
+    color: #555;
+    padding: 1vh 2vh;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid #ccc;
+}
+
+.kob-game-settings-submit {
+    display: block;
+    height: 7vh;
+}
+
+.kob-game-settings-item > button {
+    width: 90%;
+    line-height: 3vh;
+    position: relative;
+    font-size: 18px;
+    padding: 1vh 2vh;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    background-color: #66afe9;
+    border-radius: 5px;
+    border-color: #204d74;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.kob-game-settings-item > button:hover {
+    background-color: #337ab7;
+}
+
+.kob-game-settings-login-options {
+    display: flex;
+    padding-left: 1vw;
+    justify-content: flex-start;
+    white-space: nowrap;
+    font-size: 14px;
+    width: 100%;
+}
+
+.kob-game-settings-qq > img {
+    height: 30px;
+    width: 50px;
+    position: absolute;
+    display: inline-block;
+    vertical-align: middle;
+    left: 43%;
+    cursor: pointer;
+}
+
+.kob-game-settings-error-message {
+    width: 50%;
+    margin: 0;
+    float: left;
+    box-sizing: border-box;
+    text-align: left;
+    color: red;
+    font-size: 1.5vh;
+    display: inline;
+    padding: 0 0 0 1vw;
+}
+
+.kob-game-settings-options {
+    width: 50%;
+    margin: 0;
+    box-sizing: border-box;
+    text-align: right;
+    color: #95a5a6;
+    font-size: 14px;
+    display: inline;
+    cursor: pointer;
+    float: right;
+    padding: 0 1vw 0 0;
+}
+
+.kob-game-settings-login {
+    height: 41vh;
+    width: 20vw;
+    position: relative;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border-radius: 15px;
+}
+
+.kob-game-settings-register {
+    height: 43vh;
+    width: 20vw;
+    position: relative;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border-radius: 15px;
+}
+
+
