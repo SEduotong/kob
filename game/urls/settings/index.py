@@ -1,3 +1,4 @@
+from django.urls import path, include
 from django.urls import path
 from game.views.settings.getinfo import getinfo
 from game.views.settings.login import signin
@@ -10,6 +11,7 @@ urlpatterns = [
     path("login/", signin, name="settings_login"),
     path("logout/", signout, name="settings_logout"),
     path("register/", register, name="settings_register"),
+    path("qq/", include("game.urls.settings.qq.index")),
 ]
 
 

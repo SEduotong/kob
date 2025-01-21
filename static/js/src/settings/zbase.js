@@ -70,6 +70,7 @@ class Settings {
         this.$login_submit = this.$login.find(".kob-game-settings-submit button");
         this.$login_error_message = this.$login.find(".kob-game-settings-error-message");
         this.$login_register = this.$login.find(".kob-game-settings-options");
+        this.$qq_login = this.$login.find(".kob-game-settings-qq");
         this.$login.hide();
 
         this.$register = this.$settings.find(".kob-game-settings-register");
@@ -105,6 +106,9 @@ class Settings {
         this.$login_submit.click(function () {
             outer.login_on_remote();
         });
+        this.$qq_login.click(function () {
+            outer.qq_login();
+        });
     }
 
     add_listening_events_register() {
@@ -115,6 +119,19 @@ class Settings {
         });
         this.$register_submit.click(function () {
             outer.register_on_remote();
+        });
+    }
+
+    qq_login() {
+        let url = window.location.href;
+        $.ajax({
+            url: url + "settings/qq/apply_code/",
+            type: "GET",
+            success: function (resp) {
+                if (resp.result === "success") {
+                    window.location.replace(resp.apply_code_url);
+                }
+            }
         });
     }
 
@@ -221,3 +238,4 @@ class Settings {
         this.$settings.show();
     }
 }
+
