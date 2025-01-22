@@ -4,6 +4,7 @@ class KobGamePlayground {
         this.$playground = $(`<div class="kob-game-playground"></div>`);
 
         this.hide();
+        this.root.$kob_game.append(this.$playground);
 
         this.start();
     }
@@ -14,20 +15,41 @@ class KobGamePlayground {
     }
 
     start() {
+        let outer = this;
+
+        $(window).resize(function () {
+            outer.resize();
+        });
+    }
+
+    resize() {
+        this.width = this.$playground.width();
+        this.height = this.$playground.height();
+        let unit = Math.min(this.width / 16, this.height / 9);
+        this.width = unit * 16;
+        this.height = unit * 9;
+        this.scale = this.height;  // 基准
+
+        if (this.game_map) {
+            this.game_map.resize();
+        }
     }
 
     show() {  // 显示游戏界面
         this.$playground.show();
-        this.root.$kob_game.append(this.$playground);
+
+        this.resize();
+
         this.width = this.$playground.width();
         this.height = this.$playground.height();
         this.game_map = new GameMap(this);
 
         this.players = [];
-        this.players.push(new Player(this, this.width / 2, this.height / 2, this.height * 0.05, 'white', this.height * 0.15, true));
+        this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.15, true));
+        console.log(this.players[0]);
 
         for (let i = 0; i < 5; i++) {
-            this.players.push(new Player(this, this.width / 2, this.height / 2, this.height * 0.05, this.get_random_color(), this.height * 0.15, false));
+            this.players.push(new Player(this, this.width / 2 / this.scale, 0.5,  0.05, this.get_random_color(), 0.15, false));
         }
     }
 
@@ -35,4 +57,5 @@ class KobGamePlayground {
         this.$playground.hide();
     }
 }
+
 
