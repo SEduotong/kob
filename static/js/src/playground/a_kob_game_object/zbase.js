@@ -6,7 +6,19 @@ class KobGameObject {
 
         this.has_called_start = false; // 是否已经调用过start
         this.timedelta = 0; // 两帧之间的时间间隔
+        this.uuid = this.crete_uuid();
     }
+
+    crete_uuid() {
+        let res = "";
+
+        for (let i = 0; i < 8; i ++ ) {
+            let x = parseInt(Math.floor(Math.random() * 10));  //  返回[0, 1) * 10
+            res += x;
+        }
+        return res
+    }
+
 
     start() { // 只在第一帧执行一次
 
@@ -53,4 +65,5 @@ let KOB_GAME_ANIMATION = function (timestamp) {
 }
 
 requestAnimationFrame(KOB_GAME_ANIMATION);
+
 

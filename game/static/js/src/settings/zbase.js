@@ -149,7 +149,6 @@ class Settings {
                 password: password,
             },
             success: function (resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload();
                 } else {
@@ -176,7 +175,6 @@ class Settings {
                 password_confirm: password_confirm,
             },
             success: function (resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload();
                 } else {
@@ -193,7 +191,6 @@ class Settings {
             url: "https://app4626.acapp.acwing.com.cn/settings/logout/",
             type: "GET",
             success: function (resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload();
                 }
@@ -217,7 +214,6 @@ class Settings {
             url: "https://app4626.acapp.acwing.com.cn/settings/getinfo/", type: "GET", data: {
                 platform: outer.platform,
             }, success: function (resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     outer.username = resp.username;
                     outer.photo = resp.photo;

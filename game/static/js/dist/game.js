@@ -2,14 +2,14 @@ class KobGameMenu {
     constructor(root) {
         this.root = root;
         this.$menu = $(`
-<div class="kob-game-menu">
-    <div class="kob-game-menu-field">
-        <div class="kob-game-menu-field-item kob-game-menu-field-item-single-mode">单人模式</div>
-        <div class="kob-game-menu-field-item kob-game-menu-field-item-multi-mode">多人模式</div>
-        <div class="kob-game-menu-field-item kob-game-menu-field-item-settings">退出</div>
-    </div>
-</div>
-`);
+                    <div class="kob-game-menu">
+                        <div class="kob-game-menu-field">
+                                <div class="kob-game-menu-field-item kob-game-menu-field-item-single-mode">单人模式</div>
+                                        <div class="kob-game-menu-field-item kob-game-menu-field-item-multi-mode">多人模式</div>
+                                                <div class="kob-game-menu-field-item kob-game-menu-field-item-settings">退出</div>
+                                                    </div>
+                                                    </div>
+                                                    `);
         this.$menu.hide();
         this.root.$kob_game.append(this.$menu);
         this.$single_mode = this.$menu.find('.kob-game-menu-field-item-single-mode');
@@ -27,13 +27,13 @@ class KobGameMenu {
         let outer = this;
         this.$single_mode.click(function () {
             outer.hide();
-            outer.root.playground.show();
+            outer.root.playground.show("single mode");
         });
         this.$multi_mode.click(function () {
-            console.log('multi');
+            outer.hide();
+            outer.root.playground.show("multi mode");
         });
         this.$settings.click(function () {
-            console.log('settings');
             outer.root.settings.logout_on_remote();
         });
     }
@@ -46,6 +46,7 @@ class KobGameMenu {
         this.$menu.hide();
     }
 }
+
 let KOB_GAME_OBJECTS = [];
 
 class KobGameObject {
@@ -54,7 +55,19 @@ class KobGameObject {
 
         this.has_called_start = false; // 是否已经调用过start
         this.timedelta = 0; // 两帧之间的时间间隔
+        this.uuid = this.crete_uuid();
     }
+
+    crete_uuid() {
+        let res = "";
+
+        for (let i = 0; i < 8; i ++ ) {
+            let x = parseInt(Math.floor(Math.random() * 10));  //  返回[0, 1) * 10
+            res += x;
+        }
+        return res
+    }
+
 
     start() { // 只在第一帧执行一次
 
@@ -101,6 +114,7 @@ let KOB_GAME_ANIMATION = function (timestamp) {
 }
 
 requestAnimationFrame(KOB_GAME_ANIMATION);
+
 
 class GameMap extends KobGameObject {
     constructor(playground) {
@@ -181,7 +195,7 @@ class Particle extends KobGameObject {
 
 
 class Player extends KobGameObject {
-    constructor(playground, x, y, radius, color, speed, is_me) {
+    constructor(playground, x, y, radius, color, speed, character, username, photo) {
         super();
         this.playground = playground;
         this.ctx = this.playground.game_map.ctx;
@@ -196,22 +210,25 @@ class Player extends KobGameObject {
         this.radius = radius;
         this.color = color;
         this.speed = speed;
-        this.is_me = is_me;
+        this.character = character;
+        this.username = username;
+        this.photo = photo;
         this.eps = 0.01; // 误差
         this.friction = 0.9; // 摩擦力
         this.spent_time = 0;
+        this.fireballs = [];
         this.cur_skill = null;
 
-        if (this.is_me) {
+        if (this.character !== "robot") {
             this.img = new Image();
-            this.img.src = this.playground.root.settings.photo;
+            this.img.src = this.photo;
         }
     }
 
     start() {
-        if (this.is_me) {
+        if (this.character === "me") {
             this.add_listening_events();
-        } else {
+        } else if (this.character === "robot") {
             let tx = this.playground.width * Math.random() / this.playground.scale;
             let ty = this.playground.height * Math.random() / this.playground.scale;
             this.move_to(tx, ty);
@@ -226,11 +243,24 @@ class Player extends KobGameObject {
         this.playground.game_map.$canvas.mousedown(function (e) {
             const rect = outer.ctx.canvas.getBoundingClientRect();
             if (e.which === 3) {
-                outer.move_to((e.clientX - rect.left) / outer.playground.scale, (e.clientY - rect.top) / outer.playground.scale);
-            } else if (e.which === 1) {
-                if (outer.cur_skill === "fireball") {
-                    outer.shoot_fireball((e.clientX - rect.left) / outer.playground.scale, (e.clientY - rect.top) / outer.playground.scale);
+                let tx = (e.clientX - rect.left) / outer.playground.scale;
+                let ty = (e.clientY - rect.top) / outer.playground.scale;
+                outer.move_to(tx, ty);
+
+                if (outer.playground.mode === "multi mode") {
+                    outer.playground.mps.send_move_to(tx, ty);
                 }
+            } else if (e.which === 1) {
+                let tx = (e.clientX - rect.left) / outer.playground.scale;
+                let ty = (e.clientY - rect.top) / outer.playground.scale;
+                if (outer.cur_skill === "fireball") {
+                    let fireball = outer.shoot_fireball(tx, ty);
+
+                    if (outer.playground.mode === "multi mode") {
+                        outer.playground.mps.send_shoot_fireball(tx, ty, fireball.uuid);
+                    }
+                }
+
                 outer.cur_skill = null;
             }
         });
@@ -254,7 +284,21 @@ class Player extends KobGameObject {
         let color = "red";
         let speed = 0.5;
         let move_length = 1;
-        new FireBall(this.playground, this, x, y, radius, vx, vy, color, speed, move_length, 0.01);
+        let fireball = new FireBall(this.playground, this, x, y, radius, vx, vy, color, speed, move_length, 0.01);
+        this.fireballs.push(fireball);
+
+        return fireball;
+    }
+
+    destroy_fireball(uuid) {
+        for (let i = 0; i < this.fireballs.length; i++) {
+            let fireball = this.fireballs[i];
+
+            if (fireball.uuid === uuid) {
+                fireball.destroy();
+                break;
+            }
+        }
     }
 
     get_dist(x1, y1, x2, y2) {
@@ -295,6 +339,13 @@ class Player extends KobGameObject {
         }
     }
 
+    receive_attack(x, y, angle, damage, ball_uuid, attacker) {
+        attacker.destroy_fireball(ball_uuid);
+        this.x = x;
+        this.y = y;
+        this.is_attacked(angle, damage);
+    }
+
     update() {
         this.update_move();
         this.render();
@@ -302,7 +353,7 @@ class Player extends KobGameObject {
 
     update_move() {  // 更新玩家移动
         this.spent_time += this.timedelta / 1000;
-        if (!this.is_me && this.spent_time > 4 && Math.random() < 1 / 300.0) {
+        if (!this.character === "robot" && this.spent_time > 4 && Math.random() < 1 / 300.0) {
             let player = this.playground.players[Math.floor(Math.random() * this.playground.players.length)];
             let tx = player.x + player.speed * this.vx * this.timedelta / 1000 * 0.3;
             let ty = player.y + player.speed * this.vy * this.timedelta / 1000 * 0.3;
@@ -318,7 +369,7 @@ class Player extends KobGameObject {
             if (this.move_length < this.eps) {
                 this.move_length = 0;
                 this.vx = this.vy = 0;
-                if (!this.is_me) {
+                if (!this.character === "robot") {
                     let tx = this.playground.width * Math.random() / this.playground.scale;
                     let ty = this.playground.height * Math.random() / this.playground.scale;
                     this.move_to(tx, ty);
@@ -336,7 +387,7 @@ class Player extends KobGameObject {
     render() {
         let scale = this.playground.scale;
 
-        if (this.is_me) {
+        if (this.character !== "robot") {
             this.ctx.save();
             this.ctx.beginPath();
             this.ctx.arc(this.x * scale, this.y * scale, this.radius * scale, 0, Math.PI * 2, false);
@@ -361,6 +412,7 @@ class Player extends KobGameObject {
         for (let i = 0; i < this.playground.players.length; i++) {
             if (this.playground.players[i] === this) {
                 this.playground.players.splice(i, 1);
+                break;
             }
         }
     }
@@ -394,19 +446,29 @@ class FireBall extends KobGameObject {
             return false;
         }
 
+        this.update_move();
+
+        if (this.player.character !== "enemy") {
+            this.update_attack();
+        }
+
+        this.render();
+    }
+
+    update_move() {
         let moved = Math.min(this.move_length, this.speed * this.timedelta / 1000);
         this.x += this.vx * moved;
         this.y += this.vy * moved;
         this.move_length -= moved;
+    }
 
+    update_attack() {
         for (let i = 0; i < this.playground.players.length; i++) {
             let player = this.playground.players[i];
             if (this.player !== player && this.is_collision(player)) {
                 this.attack(player);
             }
         }
-
-        this.render();
     }
 
     get_dist(x1, y1, x2, y2) {
@@ -425,6 +487,10 @@ class FireBall extends KobGameObject {
     attack(player) {
         let angle = Math.atan2(player.y - this.y, player.x - this.x);
         player.is_attacked(angle, this.damage);
+
+        if (this.playground.mode === "multi mode") {
+            this.playground.mps.send_attack(player.uuid, player.x, player.y, angle, this.damage, this.uuid);
+        }
         this.destroy();
     }
 
@@ -435,9 +501,153 @@ class FireBall extends KobGameObject {
         this.ctx.fillStyle = this.color;
         this.ctx.fill();
     }
+
+    on_destroy() {
+        let fireballs = this.player.fireballs;
+        for (let i = 0; i < fireballs.length; i++) {
+            if (fireballs[i] === this) {
+                fireballs.splice(i, 1);
+                break;
+            }
+        }
+    }
 }
 
 
+class MultiPlayerSocket {
+    constructor(playground) {
+        this.playground = playground;
+
+        this.ws = new WebSocket("wss://app4626.acapp.acwing.com.cn/wss/multiplayer/");
+
+        this.start();
+    }
+
+    start() {
+        this.receive();
+    }
+
+    receive() {
+        let outer = this;
+
+        this.ws.onmessage = function (e) {
+            let data = JSON.parse(e.data);
+            let uuid = data.uuid;
+            if (uuid === outer.uuid) return false;
+
+            let event = data.event;
+            if (event === "create_player") {
+                outer.receive_create_player(uuid, data.username, data.photo);
+            } else if (event === "move_to") {
+                outer.receive_move_to(uuid, data.tx, data.ty);
+            } else if (event === "shoot_fireball") {
+                outer.receive_shoot_fireball(uuid, data.tx, data.ty, data.ball_uuid);
+            } else if (event === "attack") {
+                outer.receive_attack(uuid, data.attackee_uuid, data.x, data.y, data.angle, data.damage, data.ball_uuid);
+            }
+        };
+    }
+
+
+    send_create_player(username, photo) {
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "create_player",
+            'uuid': outer.uuid,
+            'username': username,
+            'photo': photo,
+        }));
+    }
+
+    get_player(uuid) {
+        let players = this.playground.players;
+
+        for (let i = 0; i < players.length; i ++) {
+            let player = players[i];
+            if (player.uuid === uuid) {
+                return player;
+            }
+        }
+        return null;
+    }
+
+    receive_create_player(uuid, username, photo) {
+        let player = new Player(
+            this.playground,
+            this.playground.width / 2 / this.playground.scale,
+            0.5,
+            0.05,
+            "white",
+            0.15,
+            "enemy",
+            username,
+            photo
+        );
+        player.uuid = uuid;
+        this.playground.players.push(player);
+    }
+
+    send_move_to(tx, ty) {
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "move_to",
+            'uuid': outer.uuid,
+            'tx': tx,
+            'ty': ty,
+        }));
+    }
+
+    receive_move_to(uuid, tx, ty) {
+        let player = this.get_player(uuid);
+
+        if (player) {
+            player.move_to(tx, ty);
+        }
+    }
+
+    send_shoot_fireball(tx, ty, ball_uuid) {
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "shoot_fireball",
+            'uuid': outer.uuid,
+            'tx': tx,
+            'ty': ty,
+            'ball_uuid': ball_uuid,
+        }));
+    }
+
+    receive_shoot_fireball(uuid, tx, ty, ball_uuid) {
+        let player = this.get_player(uuid);
+
+        if (player) {
+            let fireball = player.shoot_fireball(tx, ty);
+            fireball.uuid = ball_uuid;
+        }
+    }
+
+    send_attack(attackee_uuid, x, y, angle, damage, ball_uuid) {
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "attack",
+            'uuid': outer.uuid,
+            'attackee_uuid': attackee_uuid,
+            'x': x,
+            'y': y,
+            'angle': angle,
+            'damage': damage,
+            'ball_uuid': ball_uuid,
+        }));
+    }
+
+    receive_attack(uuid, attackee_uuid, x, y, angle, damage, ball_uuid) {
+        let attacker = this.get_player(uuid);
+        let attackee = this.get_player(attackee_uuid);
+        if (attacker && attackee) {
+            attackee.receive_attack(x, y, angle, damage, ball_uuid, attacker);
+        }
+
+    }
+}
 class KobGamePlayground {
     constructor(root) {
         this.root = root;
@@ -475,21 +685,32 @@ class KobGamePlayground {
         }
     }
 
-    show() {  // 显示游戏界面
+    show(mode) {  // 显示游戏界面
+        let outer = this;
         this.$playground.show();
-
-        this.resize();
 
         this.width = this.$playground.width();
         this.height = this.$playground.height();
         this.game_map = new GameMap(this);
 
-        this.players = [];
-        this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.15, true));
-        console.log(this.players[0]);
+        this.mode = mode;
 
-        for (let i = 0; i < 5; i++) {
-            this.players.push(new Player(this, this.width / 2 / this.scale, 0.5,  0.05, this.get_random_color(), 0.15, false));
+        this.resize();
+
+        this.players = [];
+        this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.15, "me", this.root.settings.username, this.root.settings.photo));
+
+        if (mode === "single mode") {
+            for (let i = 0; i < 5; i++) {
+                this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, this.get_random_color(), 0.15, "robot"));
+            }
+        } else if (mode === "multi mode") {
+            this.mps = new MultiPlayerSocket(this);
+            this.mps.uuid = this.players[0].uuid;
+
+            this.mps.ws.onopen = function () {
+                outer.mps.send_create_player(outer.root.settings.username, outer.root.settings.photo);
+            }
         }
     }
 
@@ -650,7 +871,6 @@ class Settings {
                 password: password,
             },
             success: function (resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload();
                 } else {
@@ -677,7 +897,6 @@ class Settings {
                 password_confirm: password_confirm,
             },
             success: function (resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload();
                 } else {
@@ -694,7 +913,6 @@ class Settings {
             url: "https://app4626.acapp.acwing.com.cn/settings/logout/",
             type: "GET",
             success: function (resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload();
                 }
@@ -718,7 +936,6 @@ class Settings {
             url: "https://app4626.acapp.acwing.com.cn/settings/getinfo/", type: "GET", data: {
                 platform: outer.platform,
             }, success: function (resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     outer.username = resp.username;
                     outer.photo = resp.photo;
