@@ -11,10 +11,10 @@ class MultiPlayerSocket {
         this.receive();
     }
 
-    receive() {
+    receive () {
         let outer = this;
 
-        this.ws.onmessage = function (e) {
+        this.ws.onmessage = function(e) {
             let data = JSON.parse(e.data);
             let uuid = data.uuid;
             if (uuid === outer.uuid) return false;
@@ -28,10 +28,11 @@ class MultiPlayerSocket {
                 outer.receive_shoot_fireball(uuid, data.tx, data.ty, data.ball_uuid);
             } else if (event === "attack") {
                 outer.receive_attack(uuid, data.attackee_uuid, data.x, data.y, data.angle, data.damage, data.ball_uuid);
+            } else if (event === "blink") {
+                outer.receive_blink(uuid, data.tx, data.ty);
             }
         };
     }
-
 
     send_create_player(username, photo) {
         let outer = this;
@@ -45,13 +46,12 @@ class MultiPlayerSocket {
 
     get_player(uuid) {
         let players = this.playground.players;
-
-        for (let i = 0; i < players.length; i ++) {
+        for (let i = 0; i < players.length; i ++ ) {
             let player = players[i];
-            if (player.uuid === uuid) {
+            if (player.uuid === uuid)
                 return player;
-            }
         }
+
         return null;
     }
 
@@ -65,8 +65,9 @@ class MultiPlayerSocket {
             0.15,
             "enemy",
             username,
-            photo
+            photo,
         );
+
         player.uuid = uuid;
         this.playground.players.push(player);
     }
@@ -102,7 +103,6 @@ class MultiPlayerSocket {
 
     receive_shoot_fireball(uuid, tx, ty, ball_uuid) {
         let player = this.get_player(uuid);
-
         if (player) {
             let fireball = player.shoot_fireball(tx, ty);
             fireball.uuid = ball_uuid;
@@ -126,9 +126,27 @@ class MultiPlayerSocket {
     receive_attack(uuid, attackee_uuid, x, y, angle, damage, ball_uuid) {
         let attacker = this.get_player(uuid);
         let attackee = this.get_player(attackee_uuid);
+
         if (attacker && attackee) {
             attackee.receive_attack(x, y, angle, damage, ball_uuid, attacker);
         }
+    }
 
+    send_blink(tx, ty) {
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "blink",
+            'uuid': outer.uuid,
+            'tx': tx,
+            'ty': ty,
+        }));
+    }
+
+    receive_blink(uuid, tx, ty) {
+        let player = this.get_player(uuid);
+        if (player) {
+            player.blink(tx, ty);
+        }
     }
 }
+

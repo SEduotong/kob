@@ -2,18 +2,18 @@ class FireBall extends KobGameObject {
     constructor(playground, player, x, y, radius, vx, vy, color, speed, move_length, damage) {
         super();
         this.playground = playground;
-        this.ctx = this.playground.game_map.ctx;
         this.player = player;
+        this.ctx = this.playground.game_map.ctx;
         this.x = x;
         this.y = y;
-        this.radius = radius;
         this.vx = vx;
         this.vy = vy;
+        this.radius = radius;
         this.color = color;
         this.speed = speed;
         this.move_length = move_length;
         this.damage = damage;
-        this.eps = 0.01; // 误差
+        this.eps = 0.01;
     }
 
     start() {
@@ -46,6 +46,7 @@ class FireBall extends KobGameObject {
             let player = this.playground.players[i];
             if (this.player !== player && this.is_collision(player)) {
                 this.attack(player);
+                break;
             }
         }
     }
@@ -70,6 +71,7 @@ class FireBall extends KobGameObject {
         if (this.playground.mode === "multi mode") {
             this.playground.mps.send_attack(player.uuid, player.x, player.y, angle, this.damage, this.uuid);
         }
+
         this.destroy();
     }
 
