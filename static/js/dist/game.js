@@ -116,39 +116,115 @@ let KOB_GAME_ANIMATION = function (timestamp) {
 requestAnimationFrame(KOB_GAME_ANIMATION);
 
 
-class GameMap extends KobGameObject {
+class ChatField {
     constructor(playground) {
-        super();
         this.playground = playground;
-        this.$canvas = $(`<canvas></canvas>`);
-        this.ctx = this.$canvas[0].getContext('2d');
-        this.playground.$playground.append(this.$canvas);
-        this.ctx.canvas.width = this.playground.width;
-        this.ctx.canvas.height = this.playground.height;
+
+        this.$history = $("<div class='kob-game-chat-field-history'>历史记录</div>");
+        this.$input = $("<input type='text' class='kob-game-chat-field-input'>");
+
+        this.$history.hide();
+        this.$input.hide();
+
+        this.func_id = null;
+
+        this.playground.$playground.append(this.$history);
+        this.playground.$playground.append(this.$input);
+
+        this.start();
     }
 
     start() {
-
+        this.add_listening_events();
     }
 
-    resize() {
-        this.ctx.canvas.width = this.playground.width;
-        this.ctx.canvas.height = this.playground.height;
-        this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
-        this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+    add_listening_events() {
+        let outer = this;
+
+        this.$input.keydown(function (e) {
+            if (e.which === 27) {  // esc
+                outer.hide_input();
+                return false;
+            } else if (e.which === 13) {  // enter
+                let username = outer.playground.root.settings.username;
+                let text = outer.$input.val();
+
+                if (text) {
+                    outer.$input.val("");
+                    outer.add_message(username, text);
+                    outer.playground.mps.send_message(username, text);
+                }
+                return false;
+            }
+        });
     }
 
-    update() {
-        this.render();
+    render_message(message) {
+        return $(`<div>${message}</div>`);
     }
 
-    render() {
-        this.ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-        this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+    add_message(username, text) {
+        this.show_history();
+        let message = `[${username}]: ${text}`;
+        this.$history.append(this.render_message(message));
+        this.$history.scrollTop(this.$history[0].scrollHeight);
     }
+
+    show_history() {
+        let outer = this;
+        this.$history.fadeIn();
+
+        if (this.func_id) clearTimeout(this.func_id);
+
+        this.func_id = setTimeout(function () {
+            outer.$history.fadeOut();
+            outer.func_id = null;
+        }, 3000);
+    }
+
+    show_input() {
+        this.show_history();
+        this.$input.show();
+        this.$input.focus();
+    }
+
+    hide_input() {
+        this.$input.hide();
+        this.playground.game_map.$canvas.focus();
+    }
+}
+class GameMap extends KobGameObject {
+        constructor(playground) {
+                    super();
+                    this.playground = playground;
+                    this.$canvas = $(`<canvas tabindex=0></canvas>`);
+                    this.ctx = this.$canvas[0].getContext('2d');
+                    this.playground.$playground.append(this.$canvas);
+                    this.ctx.canvas.width = this.playground.width;
+                    this.ctx.canvas.height = this.playground.height;
+                }
+
+        start() {
+                    this.$canvas.focus();
+                }
+
+        resize() {
+                    this.ctx.canvas.width = this.playground.width;
+                    this.ctx.canvas.height = this.playground.height;
+                    this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
+                    this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+                }
+
+        update() {
+                    this.render();
+                }
+
+        render() {
+                    this.ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+                    this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+                }
 
 }
-
 class NoticeBoard extends KobGameObject {
     constructor(playground) {
         super();
@@ -256,11 +332,11 @@ class Player extends KobGameObject {
         if (this.character === "me") {
             this.fireball_coldtime = 3;  // 单位：秒
             this.fireball_img = new Image();
-            this.fireball_img.src = "https://app4626.acapp.acwing.com.cn/static/image/skill/fireball.png";
+            this.fireball_img.src = "https://cdn.acwing.com/media/article/image/2021/12/02/1_9340c86053-fireball.png";
 
             this.blink_coldtime = 5;  // 单位：秒
             this.blink_img = new Image();
-            this.blink_img.src = "https://app4626.acapp.acwing.com.cn/static/image/skill/blink.png";
+            this.blink_img.src = "https://cdn.acwing.com/media/article/image/2021/12/02/1_daccabdc53-blink.png";
         }
     }
 
@@ -289,7 +365,7 @@ class Player extends KobGameObject {
         });
         this.playground.game_map.$canvas.mousedown(function(e) {
             if (outer.playground.state !== "fighting")
-                return false;
+                return true;
 
             const rect = outer.ctx.canvas.getBoundingClientRect();
             if (e.which === 3) {
@@ -327,7 +403,19 @@ class Player extends KobGameObject {
             }
         });
 
-        $(window).keydown(function(e) {
+        this.playground.game_map.$canvas.keydown(function(e) {
+
+            if (e.which === 13) {  // enter
+                if (outer.playground.mode === "multi mode") {
+                    outer.playground.chat_field.show_input();
+                    return false;
+                }
+            } else if (e.which === 27) {  // esc
+                if (outer.playground.mode === "multi mode") {
+                    outer.playground.chat_field.hide_input();
+                }
+            }
+
             if (outer.playground.state !== "fighting")
                 return true;
 
@@ -375,7 +463,7 @@ class Player extends KobGameObject {
 
     blink(tx, ty) {
         let d = this.get_dist(this.x, this.y, tx, ty);
-        d = Math.min(d, 0.4);
+        d = Math.min(d, 0.8);
         let angle = Math.atan2(ty - this.y, tx - this.x);
         this.x += d * Math.cos(angle);
         this.y += d * Math.sin(angle);
@@ -551,7 +639,6 @@ class Player extends KobGameObject {
         }
     }
 }
-
 class FireBall extends KobGameObject {
     constructor(playground, player, x, y, radius, vx, vy, color, speed, move_length, damage) {
         super();
@@ -681,6 +768,8 @@ class MultiPlayerSocket {
                 outer.receive_attack(uuid, data.attackee_uuid, data.x, data.y, data.angle, data.damage, data.ball_uuid);
             } else if (event === "blink") {
                 outer.receive_blink(uuid, data.tx, data.ty);
+            } else if (event === "message") {
+                outer.receive_message(uuid, data.username, data.text);
             }
         };
     }
@@ -799,8 +888,21 @@ class MultiPlayerSocket {
             player.blink(tx, ty);
         }
     }
-}
 
+    send_message(username, text) {
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "message",
+            'uuid': outer.uuid,
+            'username': username,
+            'text': text,
+        }));
+    }
+
+    receive_message(uuid, username, text) {
+            this.playground.chat_field.add_message(username, text);
+    }
+}
 class KobGamePlayground {
     constructor(root) {
         this.root = root;
@@ -858,6 +960,7 @@ class KobGamePlayground {
                 this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, this.get_random_color(), 0.15, "robot"));
             }
         } else if (mode === "multi mode") {
+            this.chat_field = new ChatField(this);
             this.mps = new MultiPlayerSocket(this);
             this.mps.uuid = this.players[0].uuid;
 
