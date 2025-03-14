@@ -181,7 +181,7 @@ class Settings {
         })
     }
 
-    register_on_remote() { // 在远程服务器上注册\
+    register_on_remote() { // 在远程服务器上注册
         let username = this.$register_username.val();
         let password = this.$register_password.val();
         let password_confirm = this.$register_password_confirm.val();
